@@ -1,3 +1,7 @@
+/**
+ * Created by Rach on 24/2/2018.
+ */
+
 const express = require('express')
 
 const app = express()
@@ -64,7 +68,7 @@ app.post('/api/register', (req, res) => {
         res.status(500)
             .send({
                 status: "failure",
-                error: "Unable to find student or teacher. Please provide them."
+                error: "Error in sending input!"
             })
     }
 
@@ -76,8 +80,6 @@ app.post('/api/register', (req, res) => {
             })
     }
 
-    //  Store in database and Send response
-
     Teacher
         .findOrCreate({ where: { email: teacher }, })
         .spread((teacher, created) => {
@@ -87,7 +89,6 @@ app.post('/api/register', (req, res) => {
             console.log("Created Teacher: ", created)
 
             students.forEach(student_email => {
-                // this loop for each student, create them and set their teachers.
                 Student.findOrCreate({ where: { email: student_email, status: true, teacherId: teacher.id } })
                     .spread((student, created) => {
                         console.log(student.get({
@@ -106,42 +107,21 @@ app.post('/api/register', (req, res) => {
         })
 })
 
-// app.get('/api/commonstudents', (req, res) => {
-//     console.log("Req ", req.query)
-//     const teacher = req.query.teacher;
-
-//     if(!teacher){
-//         res.status(500)
-//             .send({
-//                 status: "failure",
-//                 error: "Unable to get teacher. Please provide teacher."
-//             })
-//     }
-
-//     res.status(200)
-//         .send({
-//             status: "success",
-//             data: {
-//                 "students":
-//                     [
-//                         "commonstudent1@gmail.com",
-//                         "commonstudent2@gmail.com",
-//                         "student_only_under_teacher_ken@gmail.com"
-//                     ]
-//             }
-//         })
-// })
-
-
 app.post('/api/commonstudents', (req, res) => {
     console.log("Req ", req.body)
     const teacher = req.body.teacher;
-
     if (!teacher) {
         res.status(500)
             .send({
                 status: "failure",
-                error: "Unable to get teacher. Please provide teacher."
+                error: "Error in sending input."
+            })
+    }
+    if (teacher && teacher.length == 0) {
+        res.status(500)
+            .send({
+                status: "failure",
+                error: "Empty input! No teachers provided. Please input atleast one!"
             })
     }
 
@@ -156,21 +136,30 @@ app.post('/api/commonstudents', (req, res) => {
                 {
                     where: { email: teacher_email }
                 }).then((teacher) => {
-                    console.log(teacher.id)
-                    Student.findAll({
-                        where: {
-                            teacherId: teacher.id
-                        }
-                    }).then((data) => {
-                        var dummy = []
-                        data.forEach(student => {
-                            console.log(student.email)
-                            dummy.push(student.email)
-                            all_emails.push(student.email)
+                    if (!teacher) {
+                        res.status(500)
+                            .send({
+                                status: "failure",
+                                error: "Unable to get teacher. Please provide correct email address."
+                            })
+                    }
+                    else {
+                        Student.findAll({
+                            where: {
+                                teacherId: teacher.id
+                            }
+                        }).then((data) => {
+                            var dummy = []
+                            data.forEach(student => {
+                                console.log(student.email)
+                                dummy.push(student.email)
+                                all_emails.push(student.email)
+                            })
+                            list_emails.push(new Set(dummy))
+                            callback()
                         })
-                        list_emails.push(new Set(dummy))
-                        callback()
-                    })
+                    }
+
                 })
         },
 
@@ -197,34 +186,51 @@ app.post('/api/commonstudents', (req, res) => {
 
 
 app.post('/api/suspend', (req, res) => {
+
     console.log("Req ", req.body)
     const student = req.body.student;
-
     if (!student) {
         res.status(500)
             .send({
                 status: "failure",
-                error: "Unable to get student. Please provide student."
+                error: "Error in sending input."
             })
     }
 
-    Student.update({
-        status: 0,
-    }, {
-            where: {
-                email: student,
-                status: 1,
-            }
-        }).then(() => {
-
-            res.status(204)
-                .send({
-                    status: "success",
-                    data: "Student successfully suspended."
-                })
-
+    else {
+        Student.findAll({
+            where: { email: student }
         })
-
+            .then((data) => {
+                var student_email = []
+                data.forEach(student => {
+                    console.log(student.email)
+                    student_email.push(student.email)
+                })
+                if (student_email.length == 0) {
+                    res.status(500)
+                        .send({
+                            status: "failure",
+                            error: "Student is not registered!"
+                        })
+                } else {
+                    Student
+                        .update({ status: 0, }, {
+                            where: {
+                                email: student,
+                                status: 1,
+                            }
+                        })
+                        .then(() => {
+                            res.status(204)
+                                .send({
+                                    status: "success",
+                                    data: "Student successfully suspended."
+                                })
+                        })
+                }
+            })
+    }
 })
 
 app.post('/api/retrievefornotifications', (req, res) => {
@@ -232,61 +238,67 @@ app.post('/api/retrievefornotifications', (req, res) => {
     const teacher = req.body.teacher;
     const notification = req.body.notification;
 
-    var listofwords = notification.split(' ')
-    var mentioned_emails = []
-
-    if (!teacher) {
+    if (!teacher || !notification) {
         res.status(500)
             .send({
                 status: "failure",
-                error: "Unable to get teacher. Please provide teacher."
+                error: "Error in input request!"
             })
     }
 
+    var listofwords = notification.split(' ')
+    var mentioned_emails = []
     Teacher.findOne(
         {
             where: { email: teacher }
         }).then((teacher) => {
-            console.log(teacher.id)
-            Student.findAll({
-                where: {
-                    teacherId: teacher.id,
-                    status: 1
-                }
-            }).then((data) => {
 
-                var student_emails = []
-                data.forEach(student => {
-                    console.log(student.email)
-                    student_emails.push(student.email)
-
-                })
-
-                console.log(">>> Student emails for this teacher:", student_emails);
-                console.log(">>>> need to merge with mentioned ones..")
-
-                for (const word of listofwords) {
-                    if (word[0] == "@") {
-                        mentioned_emails.push(word.substr(1))
-                    }
-                }
-
-                console.log(">>>> Mentioned emails... ", mentioned_emails)
-
-                var dummy = student_emails.concat(mentioned_emails);
-
-                res.status(200)
+            if (!teacher) {
+                res.status(500)
                     .send({
-                        status: "success",
-                        data: {
-                            "recipients": dummy.filter(onlyUnique)
-                        }
+                        status: "failure",
+                        error: "Unable to get teacher. Please provide correct email address."
+                    })
+            }
+            else {
+
+                Student.findAll({
+                    where: {
+                        teacherId: teacher.id,
+                        status: 1
+                    }
+                }).then((data) => {
+                    var student_emails = []
+                    data.forEach(student => {
+                        console.log(student.email)
+                        student_emails.push(student.email)
+
                     })
 
-            })
+                    console.log(">>> Student emails for this teacher:", student_emails);
+                    console.log(">>>> need to merge with mentioned ones..")
+
+                    for (const word of listofwords) {
+                        if (word[0] == "@") {
+                            mentioned_emails.push(word.substr(1))
+                        }
+                    }
+
+                    console.log(">>>> Mentioned emails... ", mentioned_emails)
+
+                    var dummy = student_emails.concat(mentioned_emails);
+
+                    res.status(200)
+                        .send({
+                            status: "success",
+                            data: {
+                                "recipients": dummy.filter(onlyUnique)
+                            }
+                        })
+                })
+            }
+
         })
-
-
 })
 
 function onlyUnique(value, index, self) {
