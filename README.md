@@ -16,3 +16,14 @@ Postman collection - https://www.getpostman.com/collections/17e52b8698e832baa2a2
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/17e52b8698e832baa2a2)
 
 
+To Local Setup
+
+npm install
+
+node .
+
+To run unit test cases: 
+npm test
+
+
+
