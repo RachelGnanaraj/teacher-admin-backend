@@ -22,7 +22,6 @@ const Sequelize = require('sequelize');
 //Deployed on Heroku
 const sequelize = new Sequelize(CLEARDB_DATABASE_URL);
 
-
 sequelize
     .authenticate()
     .then(() => {
