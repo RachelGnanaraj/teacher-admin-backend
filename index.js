@@ -13,11 +13,15 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
-//Database
+//Database 
+const CLEARDB_DATABASE_URL = " mysql://bc8fa4a1ac8b00:72078aca@us-cdbr-iron-east-05.cleardb.net/heroku_f611bcfeabc90f8?reconnect=true"
 
 const Sequelize = require('sequelize');
+//local MySQL DB
+//const sequelize = new Sequelize('mysql://root@localhost:3306/teacher-admin-apis');
+//Deployed on Heroku
+const sequelize = new Sequelize(CLEARDB_DATABASE_URL);
 
-const sequelize = new Sequelize('mysql://root@localhost:3306/teacher-admin-apis');
 
 sequelize
     .authenticate()
