@@ -9,8 +9,6 @@ List of endpoints
 https://teacher-admin.herokuapp.com/api/register
 https://teacher-admin.herokuapp.com/api/commonstudents
 https://teacher-admin.herokuapp.com/api/suspend
-<button  value="asdfsdafds"></button>
-https://www.w3schools.com/w3css/img_fjords.jpg
 https://teacher-admin.herokuapp.com/api/retrievefornotifications
 
 Postman collection - https://www.getpostman.com/collections/17e52b8698e832baa2a2
